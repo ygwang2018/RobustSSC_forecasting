@@ -1,0 +1,228 @@
+##This is the main source codes for the SSc forecasting in coastal sea.
+## In details, we will explore the mechanism of our decomposition-ensemblement forecasting systems.
+## The ourtlier dection is considered in our algorithms.
+Data<-read.csv("C:\\Users\\wujrt\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SSC_Average.csv")
+DataModel<-auto.arima(Data)
+summary(DataModel)
+plot(DataModel$fitted,type="l")
+points(Data,type = "l",col=2)
+qqnorm(DataModel$residuals)
+qqline(DataModel$residuals)
+## SSC decomposition 
+library(EMD)
+DecompSSC<-emd(ts(Data),boundary="periodic")
+par(mfrow=c(5,2))
+for (i in c(1:9)){
+plot(DecompSSC$imf[,i],type = "l")
+}
+plot(DecompSSC$residue,type = "l")
+## DatSet Reconstruction
+SubSSC<-cbind(DecompSSC$imf,DecompSSC$residue)
+library(forecast)
+## Outlier detection for each sub-series
+par(mfrow=c(5,2))
+for (i in c(1:10)){
+  BasicARIMA<-auto.arima(SubSSC[,i])
+  summary(BasicARIMA)
+  qqnorm(BasicARIMA$residuals)
+  qqline(BasicARIMA$residuals)
+}
+par(mfrow=c(5,2))
+for (i in c(1:10)){
+  plot(SubSSC[,i],type = "l",col=2)
+  BasicARIMA<-auto.arima(SubSSC[,i])
+  points(BasicARIMA$fitted,type="l")
+}
+par(mfrow=c(2,2))
+pacf(SubSSC[,5])
+pacf(SubSSC[,6])
+pacf(SubSSC[,7])
+pacf(SubSSC[,8])
+par(mfrow=c(2,2))
+acf(SubSSC[,5])
+acf(SubSSC[,6])
+acf(SubSSC[,7])
+acf(SubSSC[,8])
+##########################################
+library(R.matlab)
+data<-readMat("C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\RidgeR.mat")
+data$SubSSC1.Test.Input
+library(glmnet)
+#SubSSC1
+SubSSC1Preds<-array()
+SubSSC1Res<-array()
+for (Step in c(1:6)){
+model1<-cv.glmnet(data$SubSSC1.Train.Input,data$SubSSC1.Train.Response[,Step], alpha = 0)
+print(model1$lambda.1se)
+model2<-glmnet(data$SubSSC1.Train.Input,data$SubSSC1.Train.Response[,Step], alpha = 0,lambda = model1$lambda.1se)
+print(coef(model2))
+SubSSC1Res<-cbind(SubSSC1Res,predict(model2,data$SubSSC1.Train.Input))
+SubSSC1Preds<-cbind(SubSSC1Preds,predict(model2,data$SubSSC1.Test.Input))
+}
+SubSSC1Preds<-SubSSC1Preds[,2:7]
+SubSSC1Res<-SubSSC1Res[,2:7]
+#SubSSC2
+SubSSC2Preds<-array()
+SubSSC2Res<-array()
+A<-array()
+for (Step in c(1:6)){
+  model1<-cv.glmnet(data$SubSSC2.Train.Input,data$SubSSC2.Train.Response[,Step], alpha = 0)
+  print(model1$lambda.1se)
+  model2<-glmnet(data$SubSSC2.Train.Input,data$SubSSC2.Train.Response[,Step], alpha = 0,lambda = model1$lambda.1se)
+  A<-rbind(A,rev(t(coef(model2))))
+  SubSSC2Preds<-cbind(SubSSC2Preds,predict(model2,data$SubSSC2.Test.Input))
+  SubSSC2Res<-cbind(SubSSC2Res,predict(model2,data$SubSSC2.Train.Input))
+}
+write.csv(A,"A.csv")
+
+SubSSC2Preds<-SubSSC2Preds[,2:7]
+SubSSC2Res<-SubSSC2Res[,2:7]
+#SubSSC3
+SubSSC3Preds<-array()
+SubSSC3Res<-array()
+B<-array()
+for (Step in c(1:6)){
+  model1<-cv.glmnet(data$SubSSC3.Train.Input,data$SubSSC3.Train.Response[,Step], alpha = 0)
+  print(model1$lambda.1se)
+  model2<-glmnet(data$SubSSC3.Train.Input,data$SubSSC3.Train.Response[,Step], alpha = 0,lambda = model1$lambda.1se)
+  B<-rbind(B,rev(t(coef(model2))))
+  SubSSC3Preds<-cbind(SubSSC3Preds,predict(model2,data$SubSSC3.Test.Input))
+  SubSSC3Res<-cbind(SubSSC3Res,predict(model2,data$SubSSC3.Train.Input))
+}
+write.csv(B,"B.csv")
+SubSSC3Preds<-SubSSC3Preds[,2:7]
+SubSSC3Res<-SubSSC3Res[,2:7]
+#SubSSC4
+SubSSC4Preds<-array()
+SubSSC4Res<-array()
+for (Step in c(1:6)){
+  model1<-cv.glmnet(data$SubSSC4.Train.Input,data$SubSSC4.Train.Response[,Step], alpha = 0)
+  print(model1$lambda.1se)
+  model2<-glmnet(data$SubSSC4.Train.Input,data$SubSSC4.Train.Response[,Step], alpha = 0,lambda = model1$lambda.1se)
+  print(coef(model2))
+  SubSSC4Preds<-cbind(SubSSC4Preds,predict(model2,data$SubSSC4.Test.Input))
+  SubSSC4Res<-cbind(SubSSC4Res,predict(model2,data$SubSSC4.Train.Input))
+}
+SubSSC4Preds<-SubSSC4Preds[,2:7]
+SubSSC4Res<-SubSSC4Res[,2:7]
+#SubSSC5
+SubSSC5Preds<-array()
+SubSSC5Res<-array()
+for (Step in c(1:6)){
+  model1<-cv.glmnet(data$SubSSC5.Train.Input,data$SubSSC5.Train.Response[,Step], alpha = 0)
+  print(model1$lambda.1se)
+  model2<-glmnet(data$SubSSC5.Train.Input,data$SubSSC5.Train.Response[,Step], alpha = 0,lambda = model1$lambda.1se)
+  print(coef(model2))
+  SubSSC5Preds<-cbind(SubSSC5Preds,predict(model2,data$SubSSC5.Test.Input))
+  SubSSC5Res<-cbind(SubSSC5Res,predict(model2,data$SubSSC5.Train.Input))
+}
+SubSSC5Preds<-SubSSC5Preds[,2:7]
+SubSSC5Res<-SubSSC5Res[,2:7]
+#SubSSC6
+SubSSC6Preds<-array()
+SubSSC6Res<-array()
+for (Step in c(1:6)){
+  model1<-cv.glmnet(data$SubSSC6.Train.Input,data$SubSSC6.Train.Response[,Step], alpha = 0)
+  print(model1$lambda.1se)
+  model2<-glmnet(data$SubSSC6.Train.Input,data$SubSSC6.Train.Response[,Step], alpha = 0,lambda = model1$lambda.1se)
+  print(coef(model2))
+  SubSSC6Preds<-cbind(SubSSC6Preds,predict(model2,data$SubSSC6.Test.Input))
+  SubSSC6Res<-cbind(SubSSC6Res,predict(model2,data$SubSSC6.Train.Input))
+}
+SubSSC6Preds<-SubSSC6Preds[,2:7]
+SubSSC6Res<-SubSSC6Res[,2:7]
+#SubSSC7
+SubSSC7Preds<-array()
+SubSSC7Res<-array()
+for (Step in c(1:6)){
+  model1<-cv.glmnet(data$SubSSC7.Train.Input,data$SubSSC7.Train.Response[,Step], alpha = 0)
+  print(model1$lambda.1se)
+  model2<-glmnet(data$SubSSC7.Train.Input,data$SubSSC7.Train.Response[,Step], alpha = 0,lambda = model1$lambda.1se)
+  print(coef(model2))
+  SubSSC7Preds<-cbind(SubSSC7Preds,predict(model2,data$SubSSC7.Test.Input))
+  SubSSC7Res<-cbind(SubSSC7Res,predict(model2,data$SubSSC7.Train.Input))
+}
+SubSSC7Preds<-SubSSC7Preds[,2:7]
+SubSSC7Res<-SubSSC7Res[,2:7]
+#######Preds
+write.csv(SubSSC1Preds,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC1ridge.csv")
+write.csv(SubSSC2Preds,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC2ridge.csv")
+write.csv(SubSSC3Preds,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC3ridge.csv")
+write.csv(SubSSC4Preds,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC4ridge.csv")
+write.csv(SubSSC5Preds,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC5ridge.csv")
+write.csv(SubSSC6Preds,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC6ridge.csv")
+write.csv(SubSSC7Preds,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC7ridge.csv")
+#####Res
+write.csv(SubSSC1Res,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC1res.csv")
+write.csv(SubSSC2Res,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC2res.csv")
+write.csv(SubSSC3Res,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC3res.csv")
+write.csv(SubSSC4Res,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC4res.csv")
+write.csv(SubSSC5Res,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC5res.csv")
+write.csv(SubSSC6Res,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC6res.csv")
+write.csv(SubSSC7Res,"C:\\Users\\n10141065\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC7res.csv")
+#####Benchmark model
+##Ridge regression
+MSE<-c()
+MAE<-c()
+MRE<-c()
+SingleRidgeSet<-readMat("C:\\Users\\wujrt\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SingleRidge.mat")
+for (Step in c(1:6)){
+  cvSingleRidge<-cv.glmnet(SingleRidgeSet$SingDataTrainInput,SingleRidgeSet$SingDataTrainResponse[,Step], alpha = 0)
+  SingleRidge<-glmnet(SingleRidgeSet$SingDataTrainInput,SingleRidgeSet$SingDataTrainResponse[,Step], alpha = 0,lambda = model1$lambda.1se)
+  SingleRidgePreds<-predict(SingleRidge,SingleRidgeSet$SingDataTestInput)
+  MSE<-rbind(MSE,mean((SingleRidgeSet$SingDataTestResponse[,Step]-SingleRidgePreds)^2))
+  MAE<-rbind(MAE,mean(abs(SingleRidgeSet$SingDataTestResponse[,Step]-SingleRidgePreds)))
+  MRE<-rbind(MRE, mean(abs(SingleRidgeSet$SingDataTestResponse[,Step]-SingleRidgePreds)/SingleRidgeSet$SingDataTestResponse[,Step]))
+}
+SingleRidgeResults<-cbind(MSE,MAE,MRE)
+write.csv(SingleRidgeResults,"C:\\Users\\wujrt\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SingleRidgeResults.csv")
+###ARIMA
+Single_ARIMA_Preds<-array()
+ARIMA_Set<-ts(Data)
+for (i in c(1:210)){
+  print(i)
+  Single_ARIMA_Model<-auto.arima(ARIMA_Set[1:(1675+i)])
+  Single_ARIMA_Preds<-rbind(Single_ARIMA_Preds,forecast(Single_ARIMA_Model,h=6)$mean)
+}
+Single_ARIMA_Preds<-Single_ARIMA_Preds[2:211,]
+AMSE<-c()
+AMAE<-c()
+AMRE<-c()
+for (Step in c(1:6)){
+  AMSE<-rbind(AMSE,mean((SingleRidgeSet$SingDataTestResponse[,Step]-Single_ARIMA_Preds[,Step])^2))
+  AMAE<-rbind(AMAE,mean(abs(SingleRidgeSet$SingDataTestResponse[,Step]-Single_ARIMA_Preds[,Step])))
+  AMRE<-rbind(AMRE, mean(abs(SingleRidgeSet$SingDataTestResponse[,Step]-Single_ARIMA_Preds[,Step])/SingleRidgeSet$SingDataTestResponse[,Step]))
+}
+SingleARIMAResults<-cbind(AMSE,AMAE,AMRE)
+write.csv(SingleARIMAResults,"C:\\Users\\wujrt\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SingleARIMAResults.csv")
+###EMD-ARIMA
+EMDARIMASet<-read.csv("C:\\Users\\wujrt\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\SubSSC.csv",header = FALSE)
+EMDARIMASet<-ts(EMDARIMASet)
+EMD_ARIMA_Preds<-array()
+for (i in c(1:210)){
+  print(i)
+  De_ARIMA_Model1<-auto.arima(EMDARIMASet[1:(1675+i),1])
+  De_ARIMA_Model2<-auto.arima(EMDARIMASet[1:(1675+i),2])
+  De_ARIMA_Model3<-auto.arima(EMDARIMASet[1:(1675+i),3])
+  De_ARIMA_Model4<-auto.arima(EMDARIMASet[1:(1675+i),4])
+  De_ARIMA_Model5<-auto.arima(EMDARIMASet[1:(1675+i),5])
+  De_ARIMA_Model6<-auto.arima(EMDARIMASet[1:(1675+i),6])
+  De_ARIMA_Model7<-auto.arima(EMDARIMASet[1:(1675+i),7])
+  EachPreds<-forecast(De_ARIMA_Model1,h=6)$mean+forecast(De_ARIMA_Model2,h=6)$mean+
+    forecast(De_ARIMA_Model3,h=6)$mean+forecast(De_ARIMA_Model4,h=6)$mean+
+    forecast(De_ARIMA_Model5,h=6)$mean+forecast(De_ARIMA_Model6,h=6)$mean+
+    forecast(De_ARIMA_Model7,h=6)$mean
+  EMD_ARIMA_Preds<-rbind(EMD_ARIMA_Preds,EachPreds)
+}
+EMD_ARIMA_Preds<-EMD_ARIMA_Preds[2:211,]
+EMSE<-c()
+EMAE<-c()
+EMRE<-c()
+for (Step in c(1:6)){
+  EMSE<-rbind(EMSE,mean((SingleRidgeSet$SingDataTestResponse[,Step]-EMD_ARIMA_Preds[,Step])^2))
+  EMAE<-rbind(EMAE,mean(abs(SingleRidgeSet$SingDataTestResponse[,Step]-EMD_ARIMA_Preds[,Step])))
+  EMRE<-rbind(EMRE, mean(abs(SingleRidgeSet$SingDataTestResponse[,Step]-EMD_ARIMA_Preds[,Step])/SingleRidgeSet$SingDataTestResponse[,Step]))
+}
+EMDARIMAResults<-cbind(EMSE,EMAE,EMRE)
+write.csv(EMDARIMAResults,"C:\\Users\\wujrt\\OneDrive - Queensland University of Technology\\Desktop\\SSC forecasting\\Source Code\\EMDARIMAResults.csv")
+###EMD-ARIMA
